@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import './App.css';
 
+const axios = require('axios');
+
 const DEFAULT_QUERY = 'redux';
 
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
@@ -18,17 +20,26 @@ class App extends Component {
     super(props);
 
     this.state = {
-      result: null,
+      hits: null,
+      page: 0,
       searchTerm: DEFAULT_QUERY,
     };
 
     this.setSearchTopStories = this.setSearchTopStories.bind(this);
+    this.fetchTopStories = this.fetchTopStories.bind(this);
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
   }
 
-  setSearchTopStories(result) {this.setState({result});}
+  setSearchTopStories(result) {
+    const {hits,page} = result;
+    this.setState({hits,page});}
 
+  fetchTopStories = (searchTerm) => {
+    axios.get(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchTerm}`)
+    .then(result => this.setSearchTopStories(result.data))
+    .catch(error => console.log(error));
+  }
   onSearchChange(event) {
     this.setState({ searchTerm: event.target.value });
   }
@@ -41,19 +52,13 @@ class App extends Component {
 
   componentDidMount() {
     const {result, searchTerm} = this.state;
-
-    fetch('https://hn.algolia.com/api/v1/search?query=redux')
-    .then(response => response.json)
-    .then(r => this.setSearchTopStories(r))
-    .catch(e => console.log(e));
-
-    console.log(result);
+    this.fetchTopStories(searchTerm);
   }
 
   render() {
-    const { searchTerm, result } = this.state;
-    if(!result) return null;
-
+    const { searchTerm, hits, page } = this.state;
+    if(!hits) return null;
+    console.log(hits);
     return (
       <div className="page">
         <div className="interactions">
@@ -65,7 +70,7 @@ class App extends Component {
           </Search>
         </div>
         <Table
-          list={result.hits}
+          list={hits}
           pattern={searchTerm}
           onDismiss={this.onDismiss}
         />
