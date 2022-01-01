@@ -1,40 +1,33 @@
 import React, { Component } from 'react';
 import './App.css';
 
-const list = [
-  {
-    title: 'React',
-    url: 'https://facebook.github.io/react/',
-    author: 'Jordan Walke',
-    num_comments: 3,
-    points: 4,
-    objectID: 0,
-  },
-  {
-    title: 'Redux',
-    url: 'https://github.com/reactjs/redux',
-    author: 'Dan Abramov, Andrew Clark',
-    num_comments: 2,
-    points: 5,
-    objectID: 1,
-  },
-];
+const DEFAULT_QUERY = 'redux';
 
-const isSearched = searchTerm => item =>
-  item.title.toLowerCase().includes(searchTerm.toLowerCase());
+const PATH_BASE = 'https://hn.algolia.com/api/v1';
+
+const PATH_SEARCH = '/search';
+
+const PARAM_SEARCH = 'query=';
+
+const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}`;
+
+const isSearched = searchTerm => item => item.title.toLowerCase().includes(searchTerm.toLowerCase());
 
 class App extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      list,
-      searchTerm: '',
+      result: null,
+      searchTerm: DEFAULT_QUERY,
     };
 
+    this.setSearchTopStories = this.setSearchTopStories.bind(this);
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
   }
+
+  setSearchTopStories(result) {this.setState({result});}
 
   onSearchChange(event) {
     this.setState({ searchTerm: event.target.value });
@@ -46,8 +39,21 @@ class App extends Component {
     this.setState({ list: updatedList });
   }
 
+  componentDidMount() {
+    const {result, searchTerm} = this.state;
+
+    fetch('https://hn.algolia.com/api/v1/search?query=redux')
+    .then(response => response.json)
+    .then(r => this.setSearchTopStories(r))
+    .catch(e => console.log(e));
+
+    console.log(result);
+  }
+
   render() {
-    const { searchTerm, list } = this.state;
+    const { searchTerm, result } = this.state;
+    if(!result) return null;
+
     return (
       <div className="page">
         <div className="interactions">
@@ -59,7 +65,7 @@ class App extends Component {
           </Search>
         </div>
         <Table
-          list={list}
+          list={result.hits}
           pattern={searchTerm}
           onDismiss={this.onDismiss}
         />
@@ -79,7 +85,7 @@ const Search = ({ value, onChange, children }) =>
 
 const Table = ({ list, pattern, onDismiss }) =>
   <div className="table">
-    {list.filter(isSearched(pattern)).map(item =>
+    {list.map(item =>
       <div key={item.objectID} className="table-row">
         <span style={{ width: '40%' }}>
           <a href={item.url}>{item.title}</a>
